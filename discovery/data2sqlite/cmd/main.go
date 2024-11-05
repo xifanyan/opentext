@@ -10,8 +10,8 @@ func main() {
 
 	// Create multiple CsvRepo instances
 	repos := []*data2sqlite.CsvRepo{
-		data2sqlite.NewCsvRepo("testdata/Electric_Vehicle_Population_Data.csv"),
-		data2sqlite.NewCsvRepo("testdata/Crime_Data_from_2020_to_Present.csv"),
+		data2sqlite.NewCsvRepo("../../../testdata/Electric_Vehicle_Population_Data.csv"),
+		data2sqlite.NewCsvRepo("../../../testdata/Crime_Data_from_2020_to_Present.csv"),
 	}
 
 	// Create an output channel to receive the results
