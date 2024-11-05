@@ -28,7 +28,7 @@ type Writer struct {
 type Option func(interface{}) error
 
 // NewReader creates a new custom CSV reader with optional configurations.
-func NewReader(r io.Reader, options ...Option) (*Reader, error) {
+func NewReader(r io.Reader, options ...Option) *Reader {
 	reader := &Reader{
 		scanner:       bufio.NewScanner(r),
 		separator:     '\u0014', // Default separator
@@ -39,11 +39,11 @@ func NewReader(r io.Reader, options ...Option) (*Reader, error) {
 
 	for _, option := range options {
 		if err := option(reader); err != nil {
-			return nil, err
+			return nil
 		}
 	}
 
-	return reader, nil
+	return reader
 }
 
 // NewWriter creates a new custom CSV writer with optional configurations.
