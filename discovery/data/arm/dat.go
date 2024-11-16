@@ -1,4 +1,4 @@
-package dat
+package arm
 
 import (
 	"bufio"
