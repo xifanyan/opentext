@@ -1,7 +1,9 @@
 package dataproc
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -15,7 +17,9 @@ import (
 )
 
 type DataProc struct {
-	Fields []Field
+	Fields       []Field
+	FieldAliases map[string][]string
+	FieldTypes   map[string][]string
 	*arm.DataSet
 }
 
@@ -154,11 +158,108 @@ func (proc *DataProc) PrintFieldCounts(sortFlag bool, greaterThanZeroOnlyFlag bo
 	for _, field := range proc.Fields {
 		if greaterThanZeroOnlyFlag {
 			if field.Count > 0 {
-				fmt.Printf("%-50s %-25s %-25s %10d\n", field.Header, field.MappedTo, field.FieldType, field.Count)
+				fmt.Printf("%-50s %-10d %-25s %-25s\n", field.Header, field.Count, field.MappedTo, field.FieldType)
 			}
 		} else {
-			fmt.Printf("%-50s %-25s %-25s %10d\n", field.Header, field.MappedTo, field.FieldType, field.Count)
+			fmt.Printf("%-50s %-10d %-25s %-25s\n", field.Header, field.Count, field.MappedTo, field.FieldType)
 		}
 	}
+	return nil
+}
+
+func (proc *DataProc) findHeaderIndex(fieldName string) (int, error) {
+	for i, field := range proc.Fields {
+		if field.Header == fieldName {
+			return i, nil
+		}
+	}
+	return -1, fmt.Errorf("header '%s' not found", fieldName)
+}
+
+func (proc *DataProc) PrintTopNFieldValues(fieldName string, maxNumLines int) error {
+	headerIndex, err := proc.findHeaderIndex(fieldName)
+	if err != nil {
+		return err
+	}
+
+	printedLines := 0
+	for _, vol := range proc.DataSet.Volumns {
+		// Open the file
+		datPath := fmt.Sprintf("%s/%s/%s/%s", vol.BasePath, vol.DataSetID, vol.ID, vol.DatFile)
+		f, err := os.Open(datPath)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		// Read the first line to get the headers
+		r := arm.NewReader(f)
+
+		// skip header
+		r.NextLine()
+
+		for {
+			fields, err := r.Read()
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				return err
+			}
+
+			if len(fields) > headerIndex && fields[headerIndex] != "" {
+				if maxNumLines == -1 {
+					fmt.Println(fields[headerIndex])
+					continue
+				}
+
+				// Print the specified number of lines when the field has a value
+				if printedLines < maxNumLines {
+					fmt.Println(fields[headerIndex])
+					printedLines++
+				} else {
+					break
+				}
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (proc *DataProc) LoadFieldAliases(path string) error {
+	// Load alias definitions from file
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	err = json.NewDecoder(f).Decode(&proc.FieldAliases)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (proc *DataProc) MapHeaderToField() error {
+	// Create a map for fast lookups
+	aliasLookupTable := make(map[string]string)
+	for fieldName, headers := range proc.FieldAliases {
+		for _, header := range headers {
+			aliasLookupTable[header] = fieldName
+		}
+		aliasLookupTable[fieldName] = fieldName
+	}
+
+	for i, field := range proc.Fields {
+		if fieldName, ok := aliasLookupTable[field.Header]; ok {
+			field.MappedTo = fieldName
+			proc.Fields[i] = field
+		}
+	}
+
 	return nil
 }
