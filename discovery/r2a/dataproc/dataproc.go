@@ -16,10 +16,14 @@ import (
 	"github.com/xifanyan/opentext/discovery/r2a/data/arm"
 )
 
+type FieldPropety struct {
+	FieldType    string
+	FieldAliases []string
+}
+
 type DataProc struct {
 	Fields       []Field
-	FieldAliases map[string][]string
-	FieldTypes   map[string][]string
+	FieldMapping map[string]FieldPropety
 	*arm.DataSet
 }
 
@@ -145,6 +149,8 @@ func (proc *DataProc) countTotalColumnWithValue() error {
 }
 
 func (proc *DataProc) PrintFieldCounts(sortFlag bool, greaterThanZeroOnlyFlag bool) error {
+	proc.MapFieldProperties()
+
 	if err := proc.countTotalColumnWithValue(); err != nil {
 		return err
 	}
@@ -228,15 +234,16 @@ func (proc *DataProc) PrintTopNFieldValues(fieldName string, maxNumLines int) er
 	return nil
 }
 
-func (proc *DataProc) LoadFieldAliases(path string) error {
+func (proc *DataProc) LoadFieldMapping(path string) error {
 	// Load alias definitions from file
+	path = filepath.Join(proc.BasePath, path)
 	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	err = json.NewDecoder(f).Decode(&proc.FieldAliases)
+	err = json.NewDecoder(f).Decode(&proc.FieldMapping)
 	if err != nil {
 		return err
 	}
@@ -244,11 +251,11 @@ func (proc *DataProc) LoadFieldAliases(path string) error {
 	return nil
 }
 
-func (proc *DataProc) MapHeaderToField() error {
+func (proc *DataProc) MapFieldProperties() error {
 	// Create a map for fast lookups
 	aliasLookupTable := make(map[string]string)
-	for fieldName, headers := range proc.FieldAliases {
-		for _, header := range headers {
+	for fieldName, fieldProp := range proc.FieldMapping {
+		for _, header := range fieldProp.FieldAliases {
 			aliasLookupTable[header] = fieldName
 		}
 		aliasLookupTable[fieldName] = fieldName
@@ -257,6 +264,7 @@ func (proc *DataProc) MapHeaderToField() error {
 	for i, field := range proc.Fields {
 		if fieldName, ok := aliasLookupTable[field.Header]; ok {
 			field.MappedTo = fieldName
+			field.FieldType = proc.FieldMapping[fieldName].FieldType
 			proc.Fields[i] = field
 		}
 	}

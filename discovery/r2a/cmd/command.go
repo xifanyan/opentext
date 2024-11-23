@@ -25,8 +25,8 @@ var (
 		Flags: []cli.Flag{
 			BasePath,
 			DataSet,
-			DisplayFieldAliases,
-			FieldAliasMap,
+			DisplayFieldMapping,
+			FieldMapping,
 			GreaterThanZeroOnly,
 			Sort,
 		},
@@ -85,11 +85,11 @@ func execute(ctx *cli.Context) error {
 
 		switch ctx.Command.Name {
 		case "fieldcounts":
-			if ctx.Bool("displayFieldAliases") {
-				if proc.LoadFieldAliases(ctx.String("fieldAliasMap")) != nil {
-					return fmt.Errorf("load field aliases error")
+			if ctx.Bool("displayFieldMapping") {
+				if proc.LoadFieldMapping(ctx.String("fieldMapping")) != nil {
+					return fmt.Errorf("load field mapping error")
 				}
-				proc.MapHeaderToField()
+				proc.MapFieldProperties()
 			}
 			return proc.PrintFieldCounts(ctx.Bool("sort"), ctx.Bool("greaterThanZeroOnly"))
 		case "fieldvalues":

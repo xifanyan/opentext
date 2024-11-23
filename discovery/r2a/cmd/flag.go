@@ -145,29 +145,16 @@ var (
 		Usage:   "volumn name",
 	}
 
-	DisplayFieldAliases = &cli.BoolFlag{
-		Name:    "displayFieldAliases",
-		Aliases: []string{"a"},
+	DisplayFieldMapping = &cli.BoolFlag{
+		Name:    "displayFieldMapping",
+		Aliases: []string{"m"},
 		Value:   false,
-		Usage:   "display field aliases",
+		Usage:   "display field mapping",
 	}
 
-	FieldAliasMap = &cli.StringFlag{
-		Name:  "fieldAliasMap",
-		Usage: "field alias map",
-		Value: "field_alias_map.json",
-	}
-
-	DisplayFieldTypes = &cli.BoolFlag{
-		Name:    "displayFieldTypes",
-		Aliases: []string{"t"},
-		Value:   false,
-		Usage:   "display field types",
-	}
-
-	FieldTypeMap = &cli.StringFlag{
-		Name:  "fieldTypeMap",
-		Usage: "field type map",
-		Value: "field_type_map.json",
+	FieldMapping = &cli.StringFlag{
+		Name:  "fieldMapping",
+		Usage: "field mapping file",
+		Value: "field_mapping.json",
 	}
 )
