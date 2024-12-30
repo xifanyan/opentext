@@ -17,11 +17,25 @@ func main() {
 		Usage:   "Relativity To Axcelerate",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    "config",
-				Aliases: []string{"c"},
-				Usage:   "json config file",
-				EnvVars: []string{"R2A_CONFIG"},
-				Value:   ".r2a.json",
+				Name:    "user",
+				Usage:   "adp user",
+				EnvVars: []string{"ADPUSER"},
+				Value:   "adpuser",
+			},
+			&cli.StringFlag{
+				Name:    "password",
+				Usage:   "adp user password",
+				EnvVars: []string{"ADPUSERPASSWORD"},
+			},
+			&cli.StringFlag{
+				Name:  "domain",
+				Usage: "domain",
+				Value: "localhost",
+			},
+			&cli.IntFlag{
+				Name:  "port",
+				Usage: "port",
+				Value: 8443,
 			},
 			&cli.BoolFlag{
 				Name:    "debug",

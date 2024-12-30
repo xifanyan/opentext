@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 
+	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
+	"github.com/xifanyan/adp"
 	"github.com/xifanyan/opentext/discovery/r2a/data/arm"
 	"github.com/xifanyan/opentext/discovery/r2a/dataproc"
 )
@@ -18,7 +20,7 @@ var (
 	}
 
 	PrintFieldCountsCmd = &cli.Command{
-		Name:     "fieldcounts",
+		Name:     "fieldCounts",
 		Aliases:  []string{"fc"},
 		Category: "print",
 		Action:   execute,
@@ -33,7 +35,7 @@ var (
 	}
 
 	PrintFieldValuesCmd = &cli.Command{
-		Name:     "fieldvalues",
+		Name:     "fieldValues",
 		Aliases:  []string{"fv"},
 		Category: "print",
 		Action:   execute,
@@ -67,9 +69,28 @@ var (
 		},
 	}
 
+	VerifyCmd = &cli.Command{
+		Name:   "verify",
+		Action: execute,
+		Subcommands: []*cli.Command{
+			VerifyFieldsCmd,
+		},
+	}
+
+	VerifyFieldsCmd = &cli.Command{
+		Name:     "fields",
+		Category: "verify",
+		Action:   execute,
+		Flags: []cli.Flag{
+			ApplicationID,
+			FieldMapping,
+		},
+	}
+
 	Commands = []*cli.Command{
 		CreateCmd,
 		PrintCmd,
+		VerifyCmd,
 	}
 )
 
@@ -84,17 +105,50 @@ func execute(ctx *cli.Context) error {
 		}
 
 		switch ctx.Command.Name {
-		case "fieldcounts":
+		case "fieldCounts":
 			if ctx.Bool("displayFieldMapping") {
-				if proc.LoadFieldMapping(ctx.String("fieldMapping")) != nil {
+				if proc.InitFieldMapping(ctx.String("fieldMapping")) != nil {
 					return fmt.Errorf("load field mapping error")
 				}
 				proc.MapFieldProperties()
 			}
 			return proc.PrintFieldCounts(ctx.Bool("sort"), ctx.Bool("greaterThanZeroOnly"))
-		case "fieldvalues":
+		case "fieldValues":
 			return proc.PrintTopNFieldValues(ctx.String("name"), ctx.Int("maxNumLines"))
 		}
+	case "verify":
+		var app = ctx.String("applicationID")
+
+		client := adp.NewClientBuilder().WithDomain(ctx.String("domain")).
+			WithPort(ctx.Int("port")).
+			WithUser(ctx.String("user")).
+			WithPassword(ctx.String("password")).
+			Build()
+		svc := adp.Service{ADPClient: client}
+
+		switch ctx.Command.Name {
+		case "fields":
+			fieldProps, err := svc.GetFieldProperties(app)
+			if err != nil {
+				return err
+			}
+
+			mapping, err := dataproc.LoadFieldMapping(ctx.String("fieldMapping"))
+			if err != nil {
+				return err
+			}
+
+			for key, prop := range mapping {
+				if prop.FieldType == "Text" {
+					if _, ok := fieldProps[key]; !ok {
+						log.Error().Msgf("field %s does not exist", key)
+					}
+				}
+			}
+
+		}
+
 	}
+
 	return nil
 }

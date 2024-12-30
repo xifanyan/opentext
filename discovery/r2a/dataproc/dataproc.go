@@ -234,19 +234,31 @@ func (proc *DataProc) PrintTopNFieldValues(fieldName string, maxNumLines int) er
 	return nil
 }
 
-func (proc *DataProc) LoadFieldMapping(path string) error {
-	// Load alias definitions from file
-	path = filepath.Join(proc.BasePath, path)
+func LoadFieldMapping(path string) (map[string]FieldPropety, error) {
+	var mapping map[string]FieldPropety
+
 	f, err := os.Open(path)
 	if err != nil {
-		return err
+		return mapping, err
 	}
 	defer f.Close()
 
-	err = json.NewDecoder(f).Decode(&proc.FieldMapping)
+	err = json.NewDecoder(f).Decode(&mapping)
+	if err != nil {
+		return mapping, err
+	}
+
+	return mapping, nil
+}
+
+func (proc *DataProc) InitFieldMapping(path string) error {
+	// Load alias definitions from file
+	path = filepath.Join(proc.BasePath, path)
+	mapping, err := LoadFieldMapping(path)
 	if err != nil {
 		return err
 	}
+	proc.FieldMapping = mapping
 
 	return nil
 }
